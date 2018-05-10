@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# deactivate Ctrl-C to force the kill of the receiving sub-process
+trap '' 2
+
+
+# line to be removed if this script is not used on hepia workstation
+sudo set_usbuart_perm ttyUSB0
+uart="/dev/ttyUSB0"
+
+echo "UART traces acquisition launched. Available commands are:"
+echo "send <file>  -> send a fiel content on UART. Must be ASCII." 
+echo "color <col>  -> col must be: red, green, blue, white or yellow"
+echo "scroll <mode> -> mode must be slow or fast"
+echo "leds <mode>  -> mode must be on or off"
+echo "load <delay> -> delay must be between 0 and 15 ms (period: 20 ms)"
+echo "q            -> quit and convert collected traces to VCD format"
+
+
+lsusb -d 0403:6015
+stty -F $uart 115200
+stty -F $uart raw -echo -echoe -echok -echonl -echoprt -ctlecho
+cat $uart >uart_dat.bin &
+bgPid=$!
+
+while read cmd
+do
+	if [[ "$cmd" == "q" || "$cmd" == "quit" ]]; then
+		break
+   fi
+   #echo "$cmd"
+   if [[ "$cmd" == "send"* ]]; then
+		filename=${cmd:5}			# keep filename only
+	   echo "$filename"
+		if [ -e $filename ];	then
+			cat $filename > $uart
+			printf "\x00" > $uart
+			echo "file $filename sent"
+		else
+			echo "file $filename does not exist!"
+		fi
+   fi
+	if [[ "$cmd" == "color"* ]]; then
+		c=${cmd:6}
+	   printf "\x02$c\x00" > $uart
+   fi
+	if [[ "$cmd" == "scroll"* ]]; then
+		c=${cmd:7}
+	   printf "\x03$c\x00" > $uart
+   fi
+	if [[ "$cmd" == "load"* ]]; then
+		c=${cmd:5}
+	   printf "\x04$c\x00" > $uart
+   fi
+	if [[ "$cmd" == "leds"* ]]; then
+		c=${cmd:5}
+	   printf "\x05$c\x00" > $uart
+   fi
+
+done 
+
+# Terminate background read process
+kill $bgPid
+#echo "PID killed: $bgPid"
+trap 2
+./bin2vcd uart_dat.bin uart_dat.vcd 10us
