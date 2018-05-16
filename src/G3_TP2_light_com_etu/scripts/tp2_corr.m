@@ -3,7 +3,8 @@
 % sous forme "texte" avec un nombre par ligne dans le fichier de votre
 % choix (nom � donner dans 'filename').
 clear
-filename='rgb_ref.txt';
+filename='rgb.txt';
+# filename='rgb.txt';
 graphics_toolkit ("fltk")
 samples_per_bit=5;
 tot_bytes=15;    % nombre d'octets re�us incluant les 2 octets de la s�quence de r�f�rence
@@ -25,10 +26,10 @@ max_sig=max(blue);
 max_ratio=max_sig/max(red);
 red=red*max_ratio;            % normalisation amplitude  
 
-
 figure(1)
 plot(1:rlen/4, red, 'r', 1:rlen/4, blue, 'b')
 title('Signaux rouge et bleu re�us normalis�s par rapport au signal bleu')
+
 
 figure(2)
 clf
