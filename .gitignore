@@ -56,3 +56,16 @@ src/G3_TP2_light_tx_etu/Debug/src/light_com_tx.o
 src/G3_TP2_light_tx_etu/Debug/src/subdir.mk
 src/G3_TP2_light_com_etu/TP2_light_com_etu Release (1).launch
 src/G3_TP2_light_com_etu/TP2_light_com_etu Debug (1).launch
+src/G3_TP2_light_com_etu/Debug/ext_color_sensor.o
+src/G3_TP2_light_com_etu/Debug/libMyLab_lib.a
+src/G3_TP2_light_com_etu/Debug/src/demodulator.d
+src/G3_TP2_light_com_etu/Debug/src/demodulator.o
+src/G3_TP2_light_com_etu/Debug/src/dtmf_detection.d
+src/G3_TP2_light_com_etu/Debug/src/dtmf_detection.o
+src/G3_TP2_light_com_etu/Debug/src/timer.d
+src/G3_TP2_light_com_etu/Debug/src/tp2_son.d
+src/G3_TP2_light_com_etu/Debug/src/tp2_son.o
+src/G3_TP2_light_tx_etu/.cproject
+src/G3_TP2_light_tx_etu/.settings/language.settings.xml
+src/G3_TP2_light_com_etu/.cproject
+src/CMSISv2p00_LPC17xx/.cproject
