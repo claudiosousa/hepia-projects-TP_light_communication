@@ -1,9 +1,8 @@
-/*
- * emetteur.c
+/**
+ * R/B transmitter.
+ * Note: Mylab2 must be powered up too to get enough power !
  *
- * Date: 19.05.2015
  * Auteur: Claudio Sousa, David Gonzalez
- * Description R/B transmitter. Warning: Mylab2 must be powered up too to get enough power !
  */
 #include <cr_section_macros.h>
 #include <NXP/crp.h>
@@ -26,12 +25,12 @@
 #define START_OF_FRAME "\x95\x1B"
 #define MESSAGE "PTR is funny"
 #define SOF_SIZE 2
-#define DATA_SIZE 15
+#define MSG_SIZE 15
 #define CHECKSUM_SIZE 1
-#define FRAME_SIZE (SOF_SIZE + DATA_SIZE + CHECKSUM_SIZE)
+#define FRAME_SIZE (SOF_SIZE + MSG_SIZE + CHECKSUM_SIZE)
 #define STR_SIZE (FRAME_SIZE + 1)
 
-// Allow the main code to be notified of the timer du date
+// Allow the main code to be notified of the timer due date
 bool sleep_done = false;
 
 /**
@@ -74,12 +73,15 @@ int main (void)
 	// Message setup
 	// Concatenate the parts and be sure to have a valid string
 	char str[STR_SIZE];
-	uint8_t checksum = calc_checksum((uint8_t *)MESSAGE, STR_SIZE);
+	char msg[MSG_SIZE];
 	memset(str, '\0', STR_SIZE);
-	strncat(str, START_OF_FRAME, STR_SIZE);
-	strncat(str, MESSAGE, STR_SIZE);
+	memset(msg, '\0', MSG_SIZE);
+	strncpy(msg, MESSAGE, MSG_SIZE);
+	msg[MSG_SIZE - 1] = '\0';
+	strncpy(str, START_OF_FRAME, SOF_SIZE);
+	strncpy(str + 2, msg, MSG_SIZE);
 	str[FRAME_SIZE - 2] = '\0';
-	str[FRAME_SIZE - 1] = checksum;
+	str[FRAME_SIZE - 1] = calc_checksum((uint8_t *)msg, MSG_SIZE);
 	str[FRAME_SIZE] = '\0';
 	// Counters, one for the string and one for the bits
 	unsigned char c = 0;
