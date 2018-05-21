@@ -7,10 +7,38 @@
 #ifndef COMMAND_DECODER_H_
 #define COMMAND_DECODER_H_
 
+#include <stdbool.h>
+
+#define CMD_STR_LENGTH 31
+#define CMD_BUFFER_LENGTH 10
+
+typedef struct string_circular_buffer {
+	char buffer[CMD_BUFFER_LENGTH][CMD_STR_LENGTH];
+	unsigned int read_index;
+	unsigned int write_index;
+} string_circular_buffer;
+
+typedef struct command_decoder_t {
+	// Buffers for strings to print
+	string_circular_buffer message_print_buffer;
+	string_circular_buffer command_print_buffer;
+
+	// Color of the emitter text
+	int emitter_text_color;
+	// Scroll delay, see: CMD_SCROLL_DELAY_*
+	int scroll_delay;
+	// Either to print empty string for message
+	bool scroll_auto;
+
+	// Index from where to start reading commands in UART buffer
+	unsigned int cmd_recv_read_i;
+} command_decoder_t;
+
 /**
  * Initialise the command module
+ * @return Decoder data
  */
-void cmd_init();
+command_decoder_t cmd_init();
 
 /**
  * Send a message to the command module for printing
@@ -19,8 +47,15 @@ void cmd_init();
 void cmd_send_message(char * msg);
 
 /**
- * Print string from the buffer
+ * Decode and execute the next command in the buffer
+ * @param cmd_decoder Decoder data to work on
  */
-void cmd_print();
+void cmd_decode_next(command_decoder_t * cmd_decoder);
+
+/**
+ * Print string from the buffer
+ * @param cmd_decoder Decoder data to work on
+ */
+void cmd_print(command_decoder_t * cmd_decoder);
 
 #endif /* COMMAND_DECODER_H_ */

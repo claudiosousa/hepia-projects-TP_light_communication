@@ -26,7 +26,7 @@
  */
 int main(void) {
 	init_traces(115200, 2, true);
-	cmd_init();
+	command_decoder_t decoder_data = cmd_init();
 	ld_init();
 
 	//int2file("scripts/seq_ref_red.txt", seq_ref_red,sizeof(seq_ref_red) / sizeof(int), sizeof(int), false);
@@ -37,7 +37,9 @@ int main(void) {
 
 	while (1) {
 		ld_process();
-		cmd_print();
+		cmd_decode_next(&decoder_data);
+		cmd_print(&decoder_data);
+		cmd_print(&decoder_data);
 	}
 
 	return 1;
