@@ -11,6 +11,7 @@
 
 #define CMD_STR_LENGTH 31
 #define CMD_BUFFER_LENGTH 10
+#define CMD_UART_LENGTH 256
 
 typedef struct string_circular_buffer {
 	char buffer[CMD_BUFFER_LENGTH][CMD_STR_LENGTH];
@@ -19,6 +20,11 @@ typedef struct string_circular_buffer {
 } string_circular_buffer;
 
 typedef struct command_decoder_t {
+	// Temporary buffer for current decoded command from the queue
+	char command_buffer[CMD_UART_LENGTH];
+	// Position to insert the next character from the queue
+	unsigned int command_buffer_idx;
+
 	// Buffers for strings to print
 	string_circular_buffer message_print_buffer;
 	string_circular_buffer command_print_buffer;
@@ -29,9 +35,6 @@ typedef struct command_decoder_t {
 	int scroll_delay;
 	// Either to print empty string for message
 	bool scroll_auto;
-
-	// Index from where to start reading commands in UART buffer
-	unsigned int cmd_recv_read_i;
 } command_decoder_t;
 
 /**

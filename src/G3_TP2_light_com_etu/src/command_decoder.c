@@ -12,13 +12,12 @@
 #include "lcd.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "queue.h"
 
 #define LCD_MAGENTA	(LCD_RED | LCD_BLUE)
 #define LCD_YELLOW	(LCD_RED | LCD_GREEN)
 
 #define CMD_SEND_LENGTH 30
-#define CMD_UART_LENGTH 256
-#define CMD_UART_MARKER_CHAR '\x01'
 
 #define CMD_SCROLL_DELAY_SLOW 450
 #define CMD_SCROLL_DELAY_FAST 220
@@ -28,12 +27,8 @@
 #define CMD_COMMAND_LEDS '\x04'
 #define CMD_COMMAND_LOAD '\x05'
 
-// Circular buffer for command from UART
-static char cmd_recv[CMD_UART_LENGTH];
-// Index from where to add character when received
-static unsigned int cmd_recv_write_i = 0;
-// Count of the number of character after the last marker has been placed
-static unsigned int cmd_recv_marker_count = 0;
+// Allow the UART callback to send the characters to the task
+static xQueueHandle char_queue;
 
 /**
  * Determine whether an element is available for reading from the buffer
@@ -68,56 +63,46 @@ char * string_circular_buffer_pop(string_circular_buffer * buf) {
 
 /**
  * Callback function of the UART RX.
- * Receive character one by one.
- * To make it easier for the command decoder to find the command inside,
- * the callback insert an additional marker at the end of the command.
+ * Receive character one by one and put them in the queue.
  */
 void uart_rx_cmd_callback(int int_status) {
 	uint8_t c = LPC_UART0->RBR;
-	cmd_recv[cmd_recv_write_i] = c;
-	cmd_recv_write_i = (cmd_recv_write_i + 1) % CMD_UART_LENGTH;
-	cmd_recv_marker_count++;
-
-	// Place marker for easy retrieval
-	// Place on command end, text linefeed or text filled
-	if ((c == '\0') || (c == '\n') || (cmd_recv_marker_count >= CMD_SEND_LENGTH)) {
-		cmd_recv[cmd_recv_write_i] = CMD_UART_MARKER_CHAR;
-		cmd_recv_write_i = (cmd_recv_write_i + 1) % CMD_UART_LENGTH;
-		cmd_recv_marker_count = 0;
-	}
+	portBASE_TYPE task_woken = 0;
+	xQueueSendToBackFromISR(char_queue, &c, &task_woken);
 }
 
+/**
+ * Reset the character buffer that get the command from UART
+ * @param cmd_decoder Decoder data to work on
+ */
+void cmd_command_buffer_reset(command_decoder_t * cmd_decoder) {
+	memset(cmd_decoder->command_buffer, '\0', CMD_UART_LENGTH);
+	cmd_decoder->command_buffer_idx = 0;
+}
+
+/**
+ * Get the character from the queue and put it in the temporary buffer.
+ * If a complet command is received, then the output will be put in 'cmd'
+ * @param cmd_decoder Decoder data to work on
+ * @param cmd Character buffer to put the result if complet
+ * @return TRUE if a complet command is copied, FALSE otherwise
+ */
 bool cmd_get_next_command_in_buffer(command_decoder_t * cmd_decoder, char * cmd) {
-	bool found = false;
+	bool complet = false;
+	uint8_t c = '\0';
 
-	if (cmd_decoder->cmd_recv_read_i != cmd_recv_write_i) {
-		char cmd_working[CMD_STR_LENGTH];
-		memset(cmd_working, '\0', CMD_STR_LENGTH);
+	while ((complet == false) && (xQueueReceive(char_queue, &c, 0) == pdTRUE)) {
+		cmd_decoder->command_buffer[cmd_decoder->command_buffer_idx] = c;
+		cmd_decoder->command_buffer_idx++;
 
-		// Real number of chars of the command if found
-		unsigned int cmd_num_c = 0;
-		// Compute number of chars to test
-		unsigned int cmd_num_c_max = (cmd_decoder->cmd_recv_read_i <= cmd_recv_write_i) ?
-			(cmd_recv_write_i - cmd_decoder->cmd_recv_read_i) : // Interval
-			(cmd_recv_write_i + (CMD_UART_LENGTH - cmd_decoder->cmd_recv_read_i)); // Start + End
-		// Copy until next marker or max char
-		unsigned int i = cmd_decoder->cmd_recv_read_i;
-		while ((cmd_num_c < cmd_num_c_max) && (cmd_recv[i % CMD_UART_LENGTH] != CMD_UART_MARKER_CHAR)) {
-			cmd_working[cmd_num_c] = cmd_recv[i % CMD_UART_LENGTH];
-			cmd_num_c++;
-			i++;
-		}
-		// In case a marker is found, we can validate the command
-		if (cmd_recv[i % CMD_UART_LENGTH] == CMD_UART_MARKER_CHAR) {
-			strncat(cmd, cmd_working, CMD_STR_LENGTH);
-			found = true;
-
-			// Advance our reader index
-			cmd_decoder->cmd_recv_read_i = (cmd_decoder->cmd_recv_read_i + cmd_num_c + 1) % CMD_UART_LENGTH; // Skip marker
+		if ((c == '\0') || (c == '\n') || (strlen(cmd_decoder->command_buffer) >= CMD_SEND_LENGTH)) {
+			strncpy(cmd, cmd_decoder->command_buffer, CMD_STR_LENGTH);
+			cmd_command_buffer_reset(cmd_decoder);
+			complet = true;
 		}
 	}
 
-	return found;
+	return complet;
 }
 
 void cmd_init(command_decoder_t * cmd_decoder) {
@@ -126,10 +111,9 @@ void cmd_init(command_decoder_t * cmd_decoder) {
 	setup_scroll(0, 10, 0);
 	uart0_init_ref(115200, NULL, uart_rx_cmd_callback);
 
-	memset(cmd_recv, '\0', CMD_UART_LENGTH);
-	cmd_recv_write_i = 0;
-	cmd_recv_marker_count = 0;
+	char_queue = xQueueCreate(CMD_UART_LENGTH, sizeof(uint8_t));
 
+	cmd_command_buffer_reset(cmd_decoder);
 	cmd_decoder->message_print_buffer.read_index = 0;
 	cmd_decoder->message_print_buffer.write_index = 0;
 	cmd_decoder->command_print_buffer.read_index = 0;
@@ -137,7 +121,6 @@ void cmd_init(command_decoder_t * cmd_decoder) {
 	cmd_decoder->emitter_text_color = LCD_WHITE;
 	cmd_decoder->scroll_delay = CMD_SCROLL_DELAY_SLOW;
 	cmd_decoder->scroll_auto = true;
-	cmd_decoder->cmd_recv_read_i = 0;
 }
 
 void cmd_send_message(command_decoder_t * cmd_decoder, char * msg) {
@@ -150,7 +133,7 @@ void cmd_decode_next(command_decoder_t * cmd_decoder) {
 	char * cmd = cmd_mem; // Allow to skip first char
 
 	if (cmd_get_next_command_in_buffer(cmd_decoder, cmd)) {
-		char * cmd_content = cmd + 1;
+		char * cmd_content = cmd + 1; // Skip first char to ease test
 
 		if (cmd[0] == CMD_COMMAND_COLOR) {
 			if (strncmp(cmd_content, "white", 6) == 0) {
@@ -193,7 +176,7 @@ void cmd_decode_next(command_decoder_t * cmd_decoder) {
 		else if (cmd[0] == CMD_COMMAND_LOAD) {
 
 		}
-		else { } // Send commands, only text, just take it
+		else { } // Send command, this is only text, just take it
 
 		string_circular_buffer_add(&cmd_decoder->command_print_buffer, cmd);
 	}

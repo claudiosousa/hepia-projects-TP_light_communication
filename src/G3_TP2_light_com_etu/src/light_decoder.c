@@ -168,12 +168,11 @@ void ld_task(void * param) {
 	int buf_index = -1;
 
 	while (1) {
-		// Wait call of RGB sensor callback
 		xQueueReceive(buf_idx_queue, &buf_index, portMAX_DELAY);
 		light_decoder->buffer = &light_decoder->double_buffer[buf_index];
 
 		ld_process(light_decoder);
-		// Restart acquisition
+		// Restart acquisition because the callback has stopped it to allow processing
 		ld_start(light_decoder);
 	}
 }
