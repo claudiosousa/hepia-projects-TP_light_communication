@@ -36,9 +36,9 @@ typedef struct command_decoder_t {
 
 /**
  * Initialise the command module
- * @return Decoder data
+ * @param Decoder data memory to initialise
  */
-command_decoder_t cmd_init();
+void cmd_init(command_decoder_t * cmd_decoder);
 
 /**
  * Send a message to the command module for printing
@@ -57,5 +57,11 @@ void cmd_decode_next(command_decoder_t * cmd_decoder);
  * @param cmd_decoder Decoder data to work on
  */
 void cmd_print(command_decoder_t * cmd_decoder);
+
+/**
+ * Command decoder task
+ * @param param Decoder data
+ */
+void cmd_task(void * param);
 
 #endif /* COMMAND_DECODER_H_ */

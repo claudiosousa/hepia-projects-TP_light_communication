@@ -6,6 +6,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include "ext_color_sensor.h"
 
 #ifndef LIGHT_DECODER_H_
 #define LIGHT_DECODER_H_
@@ -17,19 +18,35 @@
 // 1440 samples (2 frames of 72 symbols per half of the buffer, 1 symbol=2 bits)
 #define LIGHT_BUF_LEN (2 * 72 * LIGHT_SAMPLES_PER_BIT)
 
+typedef struct light_decoder_t {
+	// Two buffers for two frame in one
+	ext_cs_t double_buffer[LIGHT_BUF_LEN * 2];
+	// The pointer to the actual buffer available for processing
+	ext_cs_t * buffer;
+} light_decoder_t;
+
 /**
  * Initialize the light decoder
+ * @param light_decoder Memory to initialise
  */
-void ld_init();
+void ld_init(light_decoder_t * light_decoder);
 
 /**
  * Start or restart acquisition
+ * @param light_decoder Light decoder data
  */
-void ld_start();
+void ld_start(light_decoder_t * light_decoder);
 
 /**
  * Process the available buffer
+ * @param light_decoder Light decoder data
  */
-void ld_process();
+void ld_process(light_decoder_t * light_decoder);
+
+/**
+ * Task for RTOS
+ * @param param Light decoder data
+ */
+void ld_task(void * param);
 
 #endif /* LIGHT_DECODER_H_ */

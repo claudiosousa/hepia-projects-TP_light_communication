@@ -25,9 +25,29 @@
  * Main function
  */
 int main(void) {
+	static light_decoder_t light_decoder;
+	static command_decoder_t decoder_data;
+
 	init_traces(115200, 2, true);
-	command_decoder_t decoder_data = cmd_init();
-	ld_init();
+	cmd_init(&decoder_data);
+	ld_init(&light_decoder);
+
+	xTaskCreate(
+		ld_task,
+		(signed portCHAR *)"light_decoder",
+		configMINIMAL_STACK_SIZE,
+		&light_decoder,
+		tskIDLE_PRIORITY + 1,
+		NULL
+	);
+	xTaskCreate(
+		cmd_task,
+		(signed portCHAR *)"command_decoder",
+		configMINIMAL_STACK_SIZE,
+		&decoder_data,
+		tskIDLE_PRIORITY + 1,
+		NULL
+	);
 
 	//int2file("scripts/seq_ref_red.txt", seq_ref_red,sizeof(seq_ref_red) / sizeof(int), sizeof(int), false);
 	//int2file("scripts/seq_ref_blue.txt", seq_ref_blue, sizeof(seq_ref_blue) / sizeof(int), sizeof(int), false);
@@ -35,12 +55,7 @@ int main(void) {
 	//int2file("scripts/rgb.txt", double_buffer,	BUF_LEN * sizeof(ext_cs_t) / sizeof(int16_t), sizeof(int16_t),	false);
 	//int2file("scripts/rgb_normalized.txt", double_buffer,	BUF_LEN * sizeof(ext_cs_t) / sizeof(int16_t), sizeof(int16_t),	false);
 
-	while (1) {
-		ld_process();
-		cmd_decode_next(&decoder_data);
-		cmd_print(&decoder_data);
-		cmd_print(&decoder_data);
-	}
+	vTaskStartScheduler();
 
 	return 1;
 }

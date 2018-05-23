@@ -10,6 +10,8 @@
 #include "LPC17xx.h"
 #include "uart.h"
 #include "lcd.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 #define LCD_MAGENTA	(LCD_RED | LCD_BLUE)
 #define LCD_YELLOW	(LCD_RED | LCD_GREEN)
@@ -122,7 +124,7 @@ bool cmd_get_next_command_in_buffer(command_decoder_t * cmd_decoder, char * cmd)
 	return found;
 }
 
-command_decoder_t cmd_init() {
+void cmd_init(command_decoder_t * cmd_decoder) {
 	init_lcd();
 	clear_screen(LCD_BLACK);
 	setup_scroll(0, 10, 0);
@@ -134,17 +136,14 @@ command_decoder_t cmd_init() {
 	message_print_buffer.read_index = 0;
 	message_print_buffer.write_index = 0;
 
-	command_decoder_t cmd_decoder;
-	cmd_decoder.message_print_buffer.read_index = 0;
-	cmd_decoder.message_print_buffer.write_index = 0;
-	cmd_decoder.command_print_buffer.read_index = 0;
-	cmd_decoder.command_print_buffer.write_index = 0;
-	cmd_decoder.emitter_text_color = LCD_WHITE;
-	cmd_decoder.scroll_delay = CMD_SCROLL_DELAY_SLOW;
-	cmd_decoder.scroll_auto = true;
-	cmd_decoder.cmd_recv_read_i = 0;
-
-	return cmd_decoder;
+	cmd_decoder->message_print_buffer.read_index = 0;
+	cmd_decoder->message_print_buffer.write_index = 0;
+	cmd_decoder->command_print_buffer.read_index = 0;
+	cmd_decoder->command_print_buffer.write_index = 0;
+	cmd_decoder->emitter_text_color = LCD_WHITE;
+	cmd_decoder->scroll_delay = CMD_SCROLL_DELAY_SLOW;
+	cmd_decoder->scroll_auto = true;
+	cmd_decoder->cmd_recv_read_i = 0;
 }
 
 void cmd_send_message(char * msg) {
@@ -247,5 +246,17 @@ void cmd_print(command_decoder_t * cmd_decoder) {
 
 	if ((cmd_decoder->scroll_auto) || ((!cmd_decoder->scroll_auto) && (str_to_print[0] != '\0'))) {
 		lcd_printf(color, LCD_BLACK, "%s\n", str_to_print);
+	}
+}
+
+void cmd_task(void * param) {
+	command_decoder_t * cmd_decoder = (command_decoder_t*)param;
+	portTickType tick_start = xTaskGetTickCount();
+
+	while (1) {
+		cmd_decode_next(cmd_decoder);
+		cmd_print(cmd_decoder);
+
+		vTaskDelayUntil(&tick_start, cmd_decoder->scroll_delay / portTICK_RATE_MS);
 	}
 }
