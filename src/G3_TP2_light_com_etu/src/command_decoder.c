@@ -26,6 +26,10 @@
 #define CMD_COMMAND_SCROLL '\x03'
 #define CMD_COMMAND_LEDS '\x04'
 #define CMD_COMMAND_LOAD '\x05'
+static const char * CMD_TO_STR[] = {
+	"", "", // Skip '\x00' and '\x01'
+	"color", "scroll", "leds", "load"
+};
 
 // Allow the UART callback to send the characters to the task
 static xQueueHandle char_queue;
@@ -194,26 +198,13 @@ void cmd_print(command_decoder_t * cmd_decoder) {
 	else if (string_circular_buffer_has(&cmd_decoder->command_print_buffer)) {
 		color = LCD_WHITE;
 		char * cmd = string_circular_buffer_pop(&cmd_decoder->command_print_buffer);
+		uint8_t cmd_marker = cmd[0];
 
-		if (cmd[0] == CMD_COMMAND_COLOR) {
+		if ((cmd_marker >= CMD_COMMAND_COLOR) && (cmd_marker <= CMD_COMMAND_LOAD)) {
 			color = LCD_MAGENTA;
-			strncat(str_to_print, "color ", CMD_STR_LENGTH);
-			cmd++;
-		}
-		else if (cmd[0] == CMD_COMMAND_SCROLL) {
-			color = LCD_MAGENTA;
-			strncat(str_to_print, "scroll ", CMD_STR_LENGTH);
-			cmd++;
-		}
-		else if (cmd[0] == CMD_COMMAND_LEDS) {
-			color = LCD_MAGENTA;
-			strncat(str_to_print, "leds ", CMD_STR_LENGTH);
-			cmd++;
-		}
-		else if (cmd[0] == CMD_COMMAND_LOAD) {
-			color = LCD_MAGENTA;
-			strncat(str_to_print, "load ", CMD_STR_LENGTH);
-			cmd++;
+			strncat(str_to_print, CMD_TO_STR[cmd_marker], CMD_STR_LENGTH);
+			strncat(str_to_print, " ", CMD_STR_LENGTH);
+			cmd++; // Don't print the command char
 		}
 		strncat(str_to_print, cmd, CMD_STR_LENGTH);
 	}
