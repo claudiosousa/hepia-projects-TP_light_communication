@@ -42,9 +42,10 @@ void cmd_init(command_decoder_t * cmd_decoder);
 
 /**
  * Send a message to the command module for printing
+ * @param cmd_decoder Decoder data to work on
  * @param msg Message to print
  */
-void cmd_send_message(char * msg);
+void cmd_send_message(command_decoder_t * cmd_decoder, char * msg);
 
 /**
  * Decode and execute the next command in the buffer

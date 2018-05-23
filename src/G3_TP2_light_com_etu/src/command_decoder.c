@@ -35,10 +35,6 @@ static unsigned int cmd_recv_write_i = 0;
 // Count of the number of character after the last marker has been placed
 static unsigned int cmd_recv_marker_count = 0;
 
-// Buffer for strings to print for cmd_send_message()
-// TODO: to be remove with RTOS implementation
-static string_circular_buffer message_print_buffer;
-
 /**
  * Determine whether an element is available for reading from the buffer
  * @param buf Circular buffer for which we want to know
@@ -133,8 +129,6 @@ void cmd_init(command_decoder_t * cmd_decoder) {
 	memset(cmd_recv, '\0', CMD_UART_LENGTH);
 	cmd_recv_write_i = 0;
 	cmd_recv_marker_count = 0;
-	message_print_buffer.read_index = 0;
-	message_print_buffer.write_index = 0;
 
 	cmd_decoder->message_print_buffer.read_index = 0;
 	cmd_decoder->message_print_buffer.write_index = 0;
@@ -146,9 +140,8 @@ void cmd_init(command_decoder_t * cmd_decoder) {
 	cmd_decoder->cmd_recv_read_i = 0;
 }
 
-void cmd_send_message(char * msg) {
-	// TODO: use RTOS communication primitive with RTOS implementation
-	string_circular_buffer_add(&message_print_buffer, msg);
+void cmd_send_message(command_decoder_t * cmd_decoder, char * msg) {
+	string_circular_buffer_add(&cmd_decoder->message_print_buffer, msg);
 }
 
 void cmd_decode_next(command_decoder_t * cmd_decoder) {
@@ -211,9 +204,8 @@ void cmd_print(command_decoder_t * cmd_decoder) {
 	memset(str_to_print, '\0', CMD_STR_LENGTH);
 	int color = LCD_WHITE;
 
-	// TODO: Use cmd_decoder->message_print_buffer instead with RTOS implementation
-	if (string_circular_buffer_has(&message_print_buffer)) {
-		strncpy(str_to_print, string_circular_buffer_pop(&message_print_buffer), CMD_STR_LENGTH);
+	if (string_circular_buffer_has(&cmd_decoder->message_print_buffer)) {
+		strncpy(str_to_print, string_circular_buffer_pop(&cmd_decoder->message_print_buffer), CMD_STR_LENGTH);
 		color = cmd_decoder->emitter_text_color;
 	}
 	else if (string_circular_buffer_has(&cmd_decoder->command_print_buffer)) {

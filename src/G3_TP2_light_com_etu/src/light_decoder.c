@@ -9,7 +9,6 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
-#include "command_decoder.h"
 
 // Macro that does a max (taken from lcd.h)
 #define MAX(x,y) (((x)>(y))?(x):(y))
@@ -101,9 +100,10 @@ int corr_index(light_decoder_t * light_decoder, int* seq_ref_red, int* seq_ref_b
 	return max_corr_index;
 }
 
-void ld_init(light_decoder_t * light_decoder) {
+void ld_init(light_decoder_t * light_decoder, command_decoder_t * cmd_decoder) {
 	buf_idx_queue = xQueueCreate(10, sizeof(int));
 
+	light_decoder->cmd_decoder = cmd_decoder;
 	ld_start(light_decoder);
 }
 
@@ -160,7 +160,7 @@ void ld_process(light_decoder_t * light_decoder) {
 		message[LIGHT_STR_LENGTH - 1] = '\0';
 	}*/
 
-	cmd_send_message(message);
+	cmd_send_message(light_decoder->cmd_decoder, message);
 }
 
 void ld_task(void * param) {

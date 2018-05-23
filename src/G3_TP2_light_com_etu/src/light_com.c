@@ -26,11 +26,11 @@
  */
 int main(void) {
 	static light_decoder_t light_decoder;
-	static command_decoder_t decoder_data;
+	static command_decoder_t cmd_decoder;
 
 	init_traces(115200, 2, true);
-	cmd_init(&decoder_data);
-	ld_init(&light_decoder);
+	cmd_init(&cmd_decoder);
+	ld_init(&light_decoder, &cmd_decoder);
 
 	xTaskCreate(
 		ld_task,
@@ -44,7 +44,7 @@ int main(void) {
 		cmd_task,
 		(signed portCHAR *)"command_decoder",
 		configMINIMAL_STACK_SIZE,
-		&decoder_data,
+		&cmd_decoder,
 		tskIDLE_PRIORITY + 1,
 		NULL
 	);
