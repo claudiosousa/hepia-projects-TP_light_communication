@@ -93,7 +93,7 @@ int main (void)
 	{
 		// Wait for the timer to tell us that the date has come
 		while (sleep_done == false) {
-			__WFI();
+			//__WFI();
 		}
 		sleep_done = false;
 
