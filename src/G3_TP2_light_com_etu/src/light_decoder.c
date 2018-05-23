@@ -26,7 +26,7 @@ static xQueueHandle buf_idx_queue;
 void rgb_callback(int buf_idx) {
 	portBASE_TYPE task_woken = 0;
 	xQueueSendToBackFromISR(buf_idx_queue, &buf_idx, &task_woken);
-	ext_colorsensor_stop_int();	// Stop acquisition to allow the frame saving
+	//ext_colorsensor_stop_int();	// Stop acquisition to allow the frame saving
 }
 
 /**
@@ -103,16 +103,6 @@ int corr_index(light_decoder_t * light_decoder, int* seq_ref_red, int* seq_ref_b
 }
 
 /**
- * Start or restart acquisition
- * @param light_decoder Light decoder data
- */
-void ld_start(light_decoder_t * light_decoder) {
-	if (ext_colorsensor_init_int(light_decoder->double_buffer, LIGHT_BUF_LEN * 2, 1000000 / 625, rgb_callback) != CS_NOERROR) {
-		exit(1);
-	}
-}
-
-/**
  * Process the available buffer
  * @param light_decoder Light decoder data
  */
@@ -155,7 +145,10 @@ void ld_init(light_decoder_t * light_decoder, command_decoder_t * cmd_decoder) {
 	buf_idx_queue = xQueueCreate(10, sizeof(int));
 
 	light_decoder->cmd_decoder = cmd_decoder;
-	ld_start(light_decoder);
+
+	if (ext_colorsensor_init_int(light_decoder->double_buffer, LIGHT_BUF_LEN * 2, 1000000 / 625, rgb_callback) != CS_NOERROR) {
+		exit(1);
+	}
 }
 
 void ld_task(void * param) {
@@ -167,8 +160,6 @@ void ld_task(void * param) {
 		light_decoder->buffer = &light_decoder->double_buffer[buf_index];
 
 		ld_process(light_decoder);
-		// Restart acquisition because the callback has stopped it to allow processing
-		ld_start(light_decoder);
 	}
 }
 
