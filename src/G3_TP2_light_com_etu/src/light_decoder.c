@@ -14,7 +14,7 @@
 #define MAX(x,y) (((x)>(y))?(x):(y))
 
 // Allow the receiver to wait for the buffer to be filled.
-// The sensor will add message in when it is the case.
+// The sensor callback will add message in when it is the case.
 static xQueueHandle buf_idx_queue;
 /**
  * Callback function of the external RGB sensor
@@ -61,7 +61,6 @@ void build_seq_refs(int * seq_ref_red, int * seq_ref_blue) {
  *
  */
 int normalize_red(light_decoder_t * light_decoder) {
-	//todo:normalize
 	int max_red = 0, max_blue = 0;
 	for (int i = 0; i < LIGHT_BUF_LEN; i++) {
 		max_red = MAX(max_red, light_decoder->buffer[i].red);
@@ -108,24 +107,10 @@ void ld_init(light_decoder_t * light_decoder, command_decoder_t * cmd_decoder) {
 }
 
 void ld_start(light_decoder_t * light_decoder) {
-	memset(light_decoder->double_buffer, 0, sizeof(light_decoder->double_buffer));
 	if (ext_colorsensor_init_int(light_decoder->double_buffer, LIGHT_BUF_LEN * 2, 1000000 / 625, rgb_callback) != CS_NOERROR) {
 		exit(1);
 	}
 }
-
-/*
- CS_BUF_LEN
- buffer
-
- function
- res = calc_corr(l, seq_ref, noisy_signal)
- res = seq_ref*noisy_signal(l:l+length(seq_ref)-1)';
- endfunction
-
- len_corr = length(noisy_signal)-length(seq_ref);
- corr_my = arrayfun(@(l)calc_corr(l, seq_ref, noisy_signal), 1:len_corr);
- */
 
 void ld_process(light_decoder_t * light_decoder) {
 	int seq_ref_red[8 * LIGHT_SAMPLES_PER_BIT];
@@ -135,8 +120,7 @@ void ld_process(light_decoder_t * light_decoder) {
 	int amplitude_threshold = normalize_red(light_decoder) / 2;
 	int sync = corr_index(light_decoder, seq_ref_red, seq_ref_blue, amplitude_threshold);
 
-	char message[LIGHT_STR_LENGTH];
-	memset(message, '\0', LIGHT_STR_LENGTH);
+	char message[LIGHT_DATA_LENGTH + 1];
 	ext_cs_t * data_buffer = &light_decoder->buffer[sync + LIGHT_SAMPLES_PER_BIT * 8 + 2];
 	for (int i = 0; i < LIGHT_DATA_LENGTH; i++) {
 		unsigned char c = 0;
@@ -150,10 +134,10 @@ void ld_process(light_decoder_t * light_decoder) {
 		message[i] = c;
 	}
 
-	if (strncmp(message, "", LIGHT_STR_LENGTH) == 0) {
-		strncpy(message, "Nothing received", LIGHT_STR_LENGTH);
-		message[LIGHT_STR_LENGTH - 1] = '\0';
+	if (false && strncmp(message, "", LIGHT_DATA_LENGTH) == 0) {
+		strncpy(message, "Nothing received", LIGHT_DATA_LENGTH + 1);
 	}
+	message[LIGHT_DATA_LENGTH] = '\0';
 	/*else if (calc_checksum((uint8_t *)message, LIGHT_DATA_LENGTH) != 0)
 	{
 		strncpy(message, "Bad checksum", LIGHT_STR_LENGTH);

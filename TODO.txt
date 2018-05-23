@@ -1,0 +1,5 @@
+:remove ?
+ext_colorsensor_stop_int(); and ld_start(light_decoder);	// Stop acquisition to allow the frame saving
+unused function prototypes n header files
+document functions and vars
+replace cmd LEDS & load
