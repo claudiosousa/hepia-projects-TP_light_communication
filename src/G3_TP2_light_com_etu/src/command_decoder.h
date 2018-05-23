@@ -8,16 +8,11 @@
 #define COMMAND_DECODER_H_
 
 #include <stdbool.h>
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
 
-#define CMD_STR_LENGTH 31
-#define CMD_BUFFER_LENGTH 10
 #define CMD_UART_LENGTH 256
-
-typedef struct string_circular_buffer {
-	char buffer[CMD_BUFFER_LENGTH][CMD_STR_LENGTH];
-	unsigned int read_index;
-	unsigned int write_index;
-} string_circular_buffer;
 
 typedef struct command_decoder_t {
 	// Temporary buffer for current decoded command from the queue
@@ -26,8 +21,8 @@ typedef struct command_decoder_t {
 	unsigned int command_buffer_idx;
 
 	// Buffers for strings to print
-	string_circular_buffer message_print_buffer;
-	string_circular_buffer command_print_buffer;
+	xQueueHandle message_print_buffer;
+	xQueueHandle command_print_buffer;
 
 	// Color of the emitter text
 	int emitter_text_color;

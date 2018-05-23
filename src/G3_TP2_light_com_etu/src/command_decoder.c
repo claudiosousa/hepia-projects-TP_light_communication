@@ -10,13 +10,12 @@
 #include "LPC17xx.h"
 #include "uart.h"
 #include "lcd.h"
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
 
 #define LCD_MAGENTA	(LCD_RED | LCD_BLUE)
 #define LCD_YELLOW	(LCD_RED | LCD_GREEN)
 
+#define CMD_STR_LENGTH 31
+#define CMD_BUFFER_LENGTH 10
 #define CMD_SEND_LENGTH 30
 
 #define CMD_SCROLL_DELAY_SLOW 450
@@ -30,37 +29,6 @@ static const char * CMD_TO_STR[] = { "color", "scroll", "load", "leds" };
 
 // Allow the UART callback to send the characters to the task
 static xQueueHandle char_queue;
-
-/**
- * Determine whether an element is available for reading from the buffer
- * @param buf Circular buffer for which we want to know
- * @return TRUE if at least one element is available, FALSE otherwise
- */
-bool string_circular_buffer_has(string_circular_buffer * buf) {
-	return buf->read_index != buf->write_index;
-}
-
-/**
- * Add a new string to the given buffer
- * @param buf Circular buffer where to add the string
- * @param str String to add
- */
-void string_circular_buffer_add(string_circular_buffer * buf, char * str) {
-	strncpy(buf->buffer[buf->write_index], str, CMD_STR_LENGTH);
-	buf->buffer[buf->write_index][CMD_STR_LENGTH - 1] = '\0';
-	buf->write_index = (buf->write_index + 1) % CMD_BUFFER_LENGTH;
-}
-
-/**
- * Pop the next string in the buffer
- * @param buf Circular buffer from where to get the string
- * @return The pointer to the string currently available
- */
-char * string_circular_buffer_pop(string_circular_buffer * buf) {
-	char * ret = buf->buffer[buf->read_index];
-	buf->read_index = (buf->read_index + 1) % CMD_BUFFER_LENGTH;
-	return ret;
-}
 
 /**
  * Callback function of the UART RX.
@@ -115,17 +83,18 @@ void cmd_init(command_decoder_t * cmd_decoder) {
 	char_queue = xQueueCreate(CMD_UART_LENGTH, sizeof(uint8_t));
 
 	cmd_command_buffer_reset(cmd_decoder);
-	cmd_decoder->message_print_buffer.read_index = 0;
-	cmd_decoder->message_print_buffer.write_index = 0;
-	cmd_decoder->command_print_buffer.read_index = 0;
-	cmd_decoder->command_print_buffer.write_index = 0;
+	cmd_decoder->message_print_buffer = xQueueCreate(CMD_BUFFER_LENGTH, sizeof(uint8_t) * CMD_STR_LENGTH);
+	cmd_decoder->command_print_buffer = xQueueCreate(CMD_BUFFER_LENGTH, sizeof(uint8_t) * CMD_STR_LENGTH);
 	cmd_decoder->emitter_text_color = LCD_WHITE;
 	cmd_decoder->scroll_delay = CMD_SCROLL_DELAY_SLOW;
 	cmd_decoder->scroll_auto = true;
 }
 
 void cmd_send_message(command_decoder_t * cmd_decoder, char * msg) {
-	string_circular_buffer_add(&cmd_decoder->message_print_buffer, msg);
+	char str_to_queue[CMD_STR_LENGTH];
+	memset(str_to_queue, '\0', CMD_STR_LENGTH);
+	strncpy(str_to_queue, msg, strlen(msg));
+	xQueueSendToBack(cmd_decoder->message_print_buffer, str_to_queue, portMAX_DELAY);
 }
 
 void cmd_decode_next(command_decoder_t * cmd_decoder) {
@@ -179,22 +148,24 @@ void cmd_decode_next(command_decoder_t * cmd_decoder) {
 		}
 		else { } // Send command, this is only text, just take it
 
-		string_circular_buffer_add(&cmd_decoder->command_print_buffer, cmd);
+		xQueueSendToBack(cmd_decoder->command_print_buffer, cmd, portMAX_DELAY);
 	}
 }
 
 void cmd_print(command_decoder_t * cmd_decoder) {
 	char str_to_print[CMD_STR_LENGTH];
 	memset(str_to_print, '\0', CMD_STR_LENGTH);
+	char str_from_queue[CMD_STR_LENGTH];
+	memset(str_from_queue, '\0', CMD_STR_LENGTH);
 	int color = LCD_WHITE;
 
-	if (string_circular_buffer_has(&cmd_decoder->message_print_buffer)) {
-		strncpy(str_to_print, string_circular_buffer_pop(&cmd_decoder->message_print_buffer), CMD_STR_LENGTH);
+	if (xQueueReceive(cmd_decoder->message_print_buffer, str_from_queue, 0) == pdTRUE) {
+		strncpy(str_to_print, str_from_queue, CMD_STR_LENGTH);
 		color = cmd_decoder->emitter_text_color;
 	}
-	else if (string_circular_buffer_has(&cmd_decoder->command_print_buffer)) {
+	else if (xQueueReceive(cmd_decoder->command_print_buffer, str_from_queue, 0) == pdTRUE) {
 		color = LCD_WHITE;
-		char * cmd = string_circular_buffer_pop(&cmd_decoder->command_print_buffer);
+		char * cmd = str_from_queue;
 		uint8_t cmd_marker = cmd[0];
 
 		if ((cmd_marker >= CMD_COMMAND_COLOR) && (cmd_marker <= CMD_COMMAND_LEDS)) {
