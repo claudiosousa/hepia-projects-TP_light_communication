@@ -6,19 +6,23 @@
 
 #include "light_decoder.h"
 #include <string.h>
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
 #include "command_decoder.h"
 
 // Macro that does a max (taken from lcd.h)
 #define MAX(x,y) (((x)>(y))?(x):(y))
 
-// Allow the receiver to wait for the buffer to be filled
-static int buf_index;
-
+// Allow the receiver to wait for the buffer to be filled.
+// The sensor will add message in when it is the case.
+static xQueueHandle buf_idx_queue;
 /**
  * Callback function of the external RGB sensor
+ * @param buf_idx
  */
 void rgb_callback(int buf_idx) {
-	buf_index = buf_idx;
+	xQueueSendToBack(buf_idx_queue, &buf_idx, portMAX_DELAY);
 	ext_colorsensor_stop_int();	// Stop acquisition to allow the frame saving
 }
 
@@ -97,11 +101,12 @@ int corr_index(light_decoder_t * light_decoder, int* seq_ref_red, int* seq_ref_b
 }
 
 void ld_init(light_decoder_t * light_decoder) {
+	buf_idx_queue = xQueueCreate(10, sizeof(int));
+
 	ld_start(light_decoder);
 }
 
 void ld_start(light_decoder_t * light_decoder) {
-	buf_index = -1;
 	memset(light_decoder->double_buffer, 0, sizeof(light_decoder->double_buffer));
 	if (ext_colorsensor_init_int(light_decoder->double_buffer, LIGHT_BUF_LEN * 2, 1000000 / 625, rgb_callback) != CS_NOERROR) {
 		exit(1);
@@ -122,10 +127,6 @@ void ld_start(light_decoder_t * light_decoder) {
  */
 
 void ld_process(light_decoder_t * light_decoder) {
-	// Wait call of RGB sensor callback
-	while (buf_index == -1) {};
-	light_decoder->buffer = &light_decoder->double_buffer[buf_index];
-
 	int seq_ref_red[8 * LIGHT_SAMPLES_PER_BIT];
 	int seq_ref_blue[8 * LIGHT_SAMPLES_PER_BIT];
 	build_seq_refs(seq_ref_red, seq_ref_blue);
@@ -159,16 +160,20 @@ void ld_process(light_decoder_t * light_decoder) {
 	}*/
 
 	cmd_send_message(message);
-
-	// Restart acquisition
-	ld_start(light_decoder);
 }
 
 void ld_task(void * param) {
 	light_decoder_t * light_decoder = (light_decoder_t*)param;
+	int buf_index = -1;
 
 	while (1) {
+		// Wait call of RGB sensor callback
+		xQueueReceive(buf_idx_queue, &buf_index, portMAX_DELAY);
+		light_decoder->buffer = &light_decoder->double_buffer[buf_index];
+
 		ld_process(light_decoder);
+		// Restart acquisition
+		ld_start(light_decoder);
 	}
 }
 
