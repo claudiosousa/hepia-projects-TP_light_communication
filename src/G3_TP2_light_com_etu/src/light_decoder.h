@@ -12,7 +12,6 @@
 #ifndef LIGHT_DECODER_H_
 #define LIGHT_DECODER_H_
 
-#define LIGHT_DATA_LENGTH 15
 #define LIGHT_SAMPLES_PER_BIT 5
 // 1440 samples (2 frames of 72 symbols per half of the buffer, 1 symbol=2 bits)
 #define LIGHT_BUF_LEN (2 * 72 * LIGHT_SAMPLES_PER_BIT)
@@ -32,18 +31,6 @@ typedef struct light_decoder_t {
  * @param cmd_decoder Pointer to the command decoder data, this allow to send message to print
  */
 void ld_init(light_decoder_t * light_decoder, command_decoder_t * cmd_decoder);
-
-/**
- * Start or restart acquisition
- * @param light_decoder Light decoder data
- */
-void ld_start(light_decoder_t * light_decoder);
-
-/**
- * Process the available buffer
- * @param light_decoder Light decoder data
- */
-void ld_process(light_decoder_t * light_decoder);
 
 /**
  * Task for RTOS

@@ -46,18 +46,6 @@ void cmd_init(command_decoder_t * cmd_decoder);
 void cmd_send_message(command_decoder_t * cmd_decoder, char * msg);
 
 /**
- * Decode and execute the next command in the buffer
- * @param cmd_decoder Decoder data to work on
- */
-void cmd_decode_next(command_decoder_t * cmd_decoder);
-
-/**
- * Print string from the buffer
- * @param cmd_decoder Decoder data to work on
- */
-void cmd_print(command_decoder_t * cmd_decoder);
-
-/**
  * Command decoder task
  * @param param Decoder data
  */

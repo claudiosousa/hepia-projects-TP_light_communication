@@ -10,6 +10,9 @@
 #include "task.h"
 #include "queue.h"
 
+// Message size to decode
+#define LIGHT_DATA_LENGTH 15
+
 // Macro that does a max (taken from lcd.h)
 #define MAX(x,y) (((x)>(y))?(x):(y))
 
@@ -99,19 +102,20 @@ int corr_index(light_decoder_t * light_decoder, int* seq_ref_red, int* seq_ref_b
 	return max_corr_index;
 }
 
-void ld_init(light_decoder_t * light_decoder, command_decoder_t * cmd_decoder) {
-	buf_idx_queue = xQueueCreate(10, sizeof(int));
-
-	light_decoder->cmd_decoder = cmd_decoder;
-	ld_start(light_decoder);
-}
-
+/**
+ * Start or restart acquisition
+ * @param light_decoder Light decoder data
+ */
 void ld_start(light_decoder_t * light_decoder) {
 	if (ext_colorsensor_init_int(light_decoder->double_buffer, LIGHT_BUF_LEN * 2, 1000000 / 625, rgb_callback) != CS_NOERROR) {
 		exit(1);
 	}
 }
 
+/**
+ * Process the available buffer
+ * @param light_decoder Light decoder data
+ */
 void ld_process(light_decoder_t * light_decoder) {
 	int seq_ref_red[8 * LIGHT_SAMPLES_PER_BIT];
 	int seq_ref_blue[8 * LIGHT_SAMPLES_PER_BIT];
@@ -145,6 +149,13 @@ void ld_process(light_decoder_t * light_decoder) {
 	}*/
 
 	cmd_send_message(light_decoder->cmd_decoder, message);
+}
+
+void ld_init(light_decoder_t * light_decoder, command_decoder_t * cmd_decoder) {
+	buf_idx_queue = xQueueCreate(10, sizeof(int));
+
+	light_decoder->cmd_decoder = cmd_decoder;
+	ld_start(light_decoder);
 }
 
 void ld_task(void * param) {

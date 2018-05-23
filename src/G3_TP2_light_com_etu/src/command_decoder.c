@@ -74,29 +74,10 @@ bool cmd_get_next_command_in_buffer(command_decoder_t * cmd_decoder, char * cmd)
 	return complet;
 }
 
-void cmd_init(command_decoder_t * cmd_decoder) {
-	init_lcd();
-	clear_screen(LCD_BLACK);
-	setup_scroll(0, 10, 0);
-	uart0_init_ref(115200, NULL, uart_rx_cmd_callback);
-
-	char_queue = xQueueCreate(CMD_UART_LENGTH, sizeof(uint8_t));
-
-	cmd_command_buffer_reset(cmd_decoder);
-	cmd_decoder->message_print_buffer = xQueueCreate(CMD_BUFFER_LENGTH, sizeof(uint8_t) * CMD_STR_LENGTH);
-	cmd_decoder->command_print_buffer = xQueueCreate(CMD_BUFFER_LENGTH, sizeof(uint8_t) * CMD_STR_LENGTH);
-	cmd_decoder->emitter_text_color = LCD_WHITE;
-	cmd_decoder->scroll_delay = CMD_SCROLL_DELAY_SLOW;
-	cmd_decoder->scroll_auto = true;
-}
-
-void cmd_send_message(command_decoder_t * cmd_decoder, char * msg) {
-	char str_to_queue[CMD_STR_LENGTH];
-	memset(str_to_queue, '\0', CMD_STR_LENGTH);
-	strncpy(str_to_queue, msg, strlen(msg));
-	xQueueSendToBack(cmd_decoder->message_print_buffer, str_to_queue, portMAX_DELAY);
-}
-
+/**
+ * Decode and execute the next command in the buffer
+ * @param cmd_decoder Decoder data to work on
+ */
 void cmd_decode_next(command_decoder_t * cmd_decoder) {
 	char cmd_mem[CMD_STR_LENGTH];
 	memset(cmd_mem, '\0', CMD_STR_LENGTH);
@@ -152,6 +133,10 @@ void cmd_decode_next(command_decoder_t * cmd_decoder) {
 	}
 }
 
+/**
+ * Print string from the buffer
+ * @param cmd_decoder Decoder data to work on
+ */
 void cmd_print(command_decoder_t * cmd_decoder) {
 	char str_to_print[CMD_STR_LENGTH];
 	memset(str_to_print, '\0', CMD_STR_LENGTH);
@@ -181,6 +166,29 @@ void cmd_print(command_decoder_t * cmd_decoder) {
 	if ((cmd_decoder->scroll_auto) || (str_to_print[0] != '\0')) {
 		lcd_printf(color, LCD_BLACK, "%s\n", str_to_print);
 	}
+}
+
+void cmd_init(command_decoder_t * cmd_decoder) {
+	init_lcd();
+	clear_screen(LCD_BLACK);
+	setup_scroll(0, 10, 0);
+	uart0_init_ref(115200, NULL, uart_rx_cmd_callback);
+
+	char_queue = xQueueCreate(CMD_UART_LENGTH, sizeof(uint8_t));
+
+	cmd_command_buffer_reset(cmd_decoder);
+	cmd_decoder->message_print_buffer = xQueueCreate(CMD_BUFFER_LENGTH, sizeof(uint8_t) * CMD_STR_LENGTH);
+	cmd_decoder->command_print_buffer = xQueueCreate(CMD_BUFFER_LENGTH, sizeof(uint8_t) * CMD_STR_LENGTH);
+	cmd_decoder->emitter_text_color = LCD_WHITE;
+	cmd_decoder->scroll_delay = CMD_SCROLL_DELAY_SLOW;
+	cmd_decoder->scroll_auto = true;
+}
+
+void cmd_send_message(command_decoder_t * cmd_decoder, char * msg) {
+	char str_to_queue[CMD_STR_LENGTH];
+	memset(str_to_queue, '\0', CMD_STR_LENGTH);
+	strncpy(str_to_queue, msg, strlen(msg));
+	xQueueSendToBack(cmd_decoder->message_print_buffer, str_to_queue, portMAX_DELAY);
 }
 
 void cmd_task(void * param) {
