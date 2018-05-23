@@ -179,11 +179,11 @@ void cmd_decode_next(command_decoder_t * cmd_decoder) {
 		}
 		else if (cmd[0] == CMD_COMMAND_SCROLL) {
 			if (strncmp(cmd_content, "slow", 5) == 0) {
-				cmd_decoder->scroll_delay = CMD_SCROLL_DELAY_FAST;
+				cmd_decoder->scroll_delay = CMD_SCROLL_DELAY_SLOW;
 				cmd_decoder->scroll_auto = true;
 			}
 			else if (strncmp(cmd_content, "fast", 5) == 0) {
-				cmd_decoder->scroll_delay = CMD_SCROLL_DELAY_SLOW;
+				cmd_decoder->scroll_delay = CMD_SCROLL_DELAY_FAST;
 				cmd_decoder->scroll_auto = true;
 			}
 			else if (strncmp(cmd_content, "stop", 5) == 0) {
