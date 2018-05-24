@@ -117,7 +117,7 @@ void cmd_decode_next(command_decoder_t * cmd_decoder) {
 			}
 		}
 		else if (cmd[0] == CMD_COMMAND_LOAD) {
-
+			load_cpu(cmd_decoder->load, atoi(cmd_content));
 		}
 		else if (cmd[0] == CMD_COMMAND_LEDS) {
 			if (strncmp(cmd_content, "on", 3) == 0) {
@@ -168,7 +168,7 @@ void cmd_print(command_decoder_t * cmd_decoder) {
 	}
 }
 
-void cmd_init(command_decoder_t * cmd_decoder, leds_t * leds) {
+void cmd_init(command_decoder_t * cmd_decoder, load_t * load, leds_t * leds) {
 	init_lcd();
 	clear_screen(LCD_BLACK);
 	setup_scroll(0, 10, 0);
@@ -182,6 +182,7 @@ void cmd_init(command_decoder_t * cmd_decoder, leds_t * leds) {
 	cmd_decoder->emitter_text_color = LCD_WHITE;
 	cmd_decoder->scroll_delay = CMD_SCROLL_DELAY_SLOW;
 	cmd_decoder->scroll_auto = true;
+	cmd_decoder->load = load;
 	cmd_decoder->leds = leds;
 }
 

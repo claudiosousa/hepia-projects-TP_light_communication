@@ -11,6 +11,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
+#include "load.h"
 #include "leds.h"
 
 #define CMD_UART_LENGTH 256
@@ -32,6 +33,8 @@ typedef struct command_decoder_t {
 	// Either to print empty string for message
 	bool scroll_auto;
 
+	// Allow the command decoder to send cpu load command to the load task
+	load_t * load;
 	// Allow the command decoder to send on/off command to the leds task
 	leds_t * leds;
 } command_decoder_t;
@@ -39,9 +42,10 @@ typedef struct command_decoder_t {
 /**
  * Initialise the command module
  * @param Decoder data memory to initialise
+ * @param load Load module data to allow sending command
  * @param leds Leds module data to allow sending command
  */
-void cmd_init(command_decoder_t * cmd_decoder, leds_t * leds);
+void cmd_init(command_decoder_t * cmd_decoder, load_t * load, leds_t * leds);
 
 /**
  * Send a message to the command module for printing
