@@ -185,9 +185,13 @@ void cmd_init(command_decoder_t * cmd_decoder) {
 }
 
 void cmd_send_message(command_decoder_t * cmd_decoder, char * msg) {
+	// Copy the given chars into a buffer of right size,
+	// because the queue will copy CMD_STR_LENGTH data from the 'msg' buffer
 	char str_to_queue[CMD_STR_LENGTH];
 	memset(str_to_queue, '\0', CMD_STR_LENGTH);
 	strncpy(str_to_queue, msg, strlen(msg));
+	str_to_queue[CMD_STR_LENGTH - 1] = '\0';
+
 	xQueueSendToBack(cmd_decoder->message_print_buffer, str_to_queue, portMAX_DELAY);
 }
 
