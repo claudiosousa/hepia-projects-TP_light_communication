@@ -15,37 +15,26 @@ void leds_init(leds_t * leds) {
 	LPC_GPIO2->FIOMASK = ~LEDS_GPIO_LED_ID;
 	LPC_GPIO2->FIOPIN = 0;
 
-	leds->switch_queue = xQueueCreate(10, sizeof(bool));
+	vSemaphoreCreateBinary(leds->sem);
 	leds->on = false;
 	leds->val = 0;
 }
 
 void leds_switch_on_off(leds_t * leds, bool on_off) {
-	xQueueSendToBack(leds->switch_queue, &on_off, portMAX_DELAY);
+	leds->on = on_off;
+	xSemaphoreGive(leds->sem);
 }
 
 void leds_task(void * param) {
 	leds_t * leds = (leds_t*)param;
 	portTickType tick_start = xTaskGetTickCount();
 	portTickType tick_wait = LEDS_WAIT_MS / portTICK_RATE_MS;
-	bool on_off = false;
 
 	while (1) {
-		// When on, it just check if there is an 'off' command
-		// If not, it continue working
-		if (leds->on) {
-			xQueueReceive(leds->switch_queue, &on_off, 0);
-			if (!on_off) {
-				leds->on = false;
-			}
-		}
 		// When off, it waits a 'on' command passively
-		else {
+		if (!leds->on) {
 			while (!leds->on) {
-				xQueueReceive(leds->switch_queue, &on_off, portMAX_DELAY);
-				if (on_off) {
-					leds->on = true;
-				}
+				xSemaphoreTake(leds->sem, portMAX_DELAY);
 			}
 			// Restart tick because we have waited an undefined quantity of time
 			tick_start = xTaskGetTickCount();

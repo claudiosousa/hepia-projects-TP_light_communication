@@ -10,11 +10,11 @@
 #include <stdbool.h>
 #include "FreeRTOS.h"
 #include "task.h"
-#include "queue.h"
+#include "semphr.h"
 
 typedef struct leds_t {
-	// Allow the command decoder to send on/off command
-	xQueueHandle switch_queue;
+	// Allow the leds module to wait passively when it is off
+	xSemaphoreHandle sem;
 
 	// Whether the leds module is on
 	bool on;
