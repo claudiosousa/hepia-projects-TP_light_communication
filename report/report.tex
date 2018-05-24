@@ -1,0 +1,74 @@
+\documentclass[11pt, a4paper]{article}
+
+% Packages
+\usepackage[francais]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+\usepackage[left=2cm, right=2cm, top=2cm, bottom=2cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{graphicx}
+\graphicspath{{./img/}}
+
+% Reset paragraph indentation -------------------------------------------------
+\setlength{\parindent}{0cm}
+
+% Page header and footer ------------------------------------------------------
+\pagestyle{fancy}
+\setlength{\headheight}{14pt}
+\renewcommand{\headrulewidth}{0.5pt}
+\lhead{Programmation temps-réel}
+%\lhead{\includegraphics[height=1cm]{logo.jpg}} % Change \headheight to right size
+\chead{Émetteur et récepteur lumineux}
+\rhead{Claudio Sousa, David Gonzalez}
+\renewcommand{\footrulewidth}{0.5pt}
+\lfoot{17/05/2018}
+\cfoot{Groupe 3}
+\rfoot{Page \thepage /\pageref{LastPage}}
+
+% Table of contents depth -----------------------------------------------------
+\setcounter{tocdepth}{3}
+
+% Document --------------------------------------------------------------------
+\begin{document}
+
+\title
+{
+    \Huge{Programmation temps-réel} \\
+    \Huge{Émetteur et récepteur lumineux}
+}
+\author
+{
+    \LARGE{Claudio Sousa, David Gonzalez - Groupe 3}
+}
+\date{17/05/2018}
+\maketitle
+
+\thispagestyle{empty}
+
+%\tableofcontents
+
+\newpage
+
+% -----------------------------------------------------------------------------
+\section{État du projet}
+
+Le projet est en état de marche et
+toutes les fonctionnalités ont pu être implémentées. \\
+
+L'émetteur fonctionne sans soucis.
+
+Les 4 tâches du récepteur fonctionnent également bien, y compris sous forte charge.
+
+\section{Anomalies ou bugs}
+
+Les programmes fonctionnent sans anomalie.
+
+\section{Traces sous forte charge}
+
+
+
+\end{document}
