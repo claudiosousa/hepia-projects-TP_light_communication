@@ -20,6 +20,7 @@
 #include "LPC17xx.h"
 #include "light_decoder.h"
 #include "command_decoder.h"
+#include "leds.h"
 
 /**
  * Main function
@@ -27,9 +28,11 @@
 int main(void) {
 	static light_decoder_t light_decoder;
 	static command_decoder_t cmd_decoder;
+	static leds_t leds;
 
 	init_traces(115200, 2, true);
-	cmd_init(&cmd_decoder);
+	cmd_init(&cmd_decoder, &leds);
+	leds_init(&leds);
 	ld_init(&light_decoder, &cmd_decoder);
 
 	xTaskCreate(
@@ -45,6 +48,14 @@ int main(void) {
 		(signed portCHAR *)"command_decoder",
 		configMINIMAL_STACK_SIZE,
 		&cmd_decoder,
+		tskIDLE_PRIORITY + 1,
+		NULL
+	);
+	xTaskCreate(
+		leds_task,
+		(signed portCHAR *)"leds",
+		configMINIMAL_STACK_SIZE,
+		&leds,
 		tskIDLE_PRIORITY + 1,
 		NULL
 	);

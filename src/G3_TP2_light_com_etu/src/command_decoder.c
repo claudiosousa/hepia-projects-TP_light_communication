@@ -121,10 +121,10 @@ void cmd_decode_next(command_decoder_t * cmd_decoder) {
 		}
 		else if (cmd[0] == CMD_COMMAND_LEDS) {
 			if (strncmp(cmd_content, "on", 3) == 0) {
-
+				leds_switch_on_off(cmd_decoder->leds, true);
 			}
 			else if (strncmp(cmd_content, "off", 4) == 0) {
-
+				leds_switch_on_off(cmd_decoder->leds, false);
 			}
 		}
 		else { } // Send command, this is only text, just take it
@@ -168,7 +168,7 @@ void cmd_print(command_decoder_t * cmd_decoder) {
 	}
 }
 
-void cmd_init(command_decoder_t * cmd_decoder) {
+void cmd_init(command_decoder_t * cmd_decoder, leds_t * leds) {
 	init_lcd();
 	clear_screen(LCD_BLACK);
 	setup_scroll(0, 10, 0);
@@ -182,6 +182,7 @@ void cmd_init(command_decoder_t * cmd_decoder) {
 	cmd_decoder->emitter_text_color = LCD_WHITE;
 	cmd_decoder->scroll_delay = CMD_SCROLL_DELAY_SLOW;
 	cmd_decoder->scroll_auto = true;
+	cmd_decoder->leds = leds;
 }
 
 void cmd_send_message(command_decoder_t * cmd_decoder, char * msg) {
