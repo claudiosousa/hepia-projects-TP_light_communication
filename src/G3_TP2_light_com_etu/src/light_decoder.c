@@ -26,7 +26,6 @@ static xQueueHandle buf_idx_queue;
 void rgb_callback(int buf_idx) {
 	portBASE_TYPE task_woken = 0;
 	xQueueSendToBackFromISR(buf_idx_queue, &buf_idx, &task_woken);
-	//ext_colorsensor_stop_int();	// Stop acquisition to allow the frame saving
 }
 
 /**
