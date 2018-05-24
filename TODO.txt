@@ -1,4 +1,4 @@
 document functions and vars
 check why WFI is fuckng with the debugless pgram
 CRC
-
+check project name in IDE
