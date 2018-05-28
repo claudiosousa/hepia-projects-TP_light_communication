@@ -13,8 +13,13 @@
 // Message size to decode
 #define LIGHT_DATA_LENGTH 15
 
-// Macro that does a max (taken from lcd.h)
+// Minimal amplitude requred to trying to read data
+#define VALID_SIGNAL_MIN_AMPLITUDE 3
+
+// Macros that do a max & min (taken from lcd.h)
 #define MAX(x,y) (((x)>(y))?(x):(y))
+#define MIN(x,y) (((x)<(y))?(x):(y))
+
 
 // Allow the receiver to wait for the buffer to be filled.
 // The sensor callback will add message in when it is the case.
@@ -59,6 +64,22 @@ void build_seq_refs(int * seq_ref_red, int * seq_ref_blue) {
 	}
 }
 
+
+/**
+ *
+ */
+int get_max_signal_amplitude(light_decoder_t * light_decoder) {
+	int max_red = 0, max_blue = 0, min_blue=1025, min_red=1025;
+	for (int i = 0; i < LIGHT_BUF_LEN; i++) {
+		max_red = MAX(max_red, light_decoder->buffer[i].red);
+		min_red = MIN(min_red, light_decoder->buffer[i].red);
+		max_blue = MAX(max_blue, light_decoder->buffer[i].blue);
+		min_blue = MIN(min_blue, light_decoder->buffer[i].blue);
+	}
+
+	return MIN(max_red-min_red, max_blue-min_blue);
+}
+
 /**
  *
  */
@@ -72,6 +93,7 @@ int normalize_red(light_decoder_t * light_decoder) {
 	float ratio = (float) max_blue / max_red;
 	for (int i = 0; i < LIGHT_BUF_LEN; i++)
 		light_decoder->buffer[i].red *= ratio;
+
 	return MAX(max_red, max_blue);
 }
 
@@ -102,20 +124,17 @@ int corr_index(light_decoder_t * light_decoder, int* seq_ref_red, int* seq_ref_b
 }
 
 /**
- * Process the available buffer
- * @param light_decoder Light decoder data
+ *
  */
-void ld_process(light_decoder_t * light_decoder) {
-	int seq_ref_red[8 * LIGHT_SAMPLES_PER_BIT];
-	int seq_ref_blue[8 * LIGHT_SAMPLES_PER_BIT];
-	build_seq_refs(seq_ref_red, seq_ref_blue);
+uint8_t decode_message(int * seq_ref_red,
+						int * seq_ref_blue,
+						char * message,
+						int sync,
+						int amplitude_threshold,
+						light_decoder_t * light_decoder){
 
-	int amplitude_threshold = normalize_red(light_decoder) / 2;
-	int sync = corr_index(light_decoder, seq_ref_red, seq_ref_blue, amplitude_threshold);
-
-	char message[LIGHT_DATA_LENGTH + 1];
 	ext_cs_t * data_buffer = &light_decoder->buffer[sync + LIGHT_SAMPLES_PER_BIT * 8 + 2];
-	for (int i = 0; i < LIGHT_DATA_LENGTH; i++) {
+	for (int i = 0; i < LIGHT_DATA_LENGTH +1 ; i++) {
 		unsigned char c = 0;
 		for (int ib =7;ib>=1;ib-=2){
 			if (data_buffer->red > amplitude_threshold)
@@ -126,17 +145,35 @@ void ld_process(light_decoder_t * light_decoder) {
 		}
 		message[i] = c;
 	}
-
-	if (false && strncmp(message, "", LIGHT_DATA_LENGTH) == 0) {
-		strncpy(message, "Nothing received", LIGHT_DATA_LENGTH + 1);
-	}
+	uint8_t checksum = message[LIGHT_DATA_LENGTH];
 	message[LIGHT_DATA_LENGTH] = '\0';
-	/*else if (calc_checksum((uint8_t *)message, LIGHT_DATA_LENGTH) != 0)
-	{
-		strncpy(message, "Bad checksum", LIGHT_STR_LENGTH);
-		message[LIGHT_STR_LENGTH - 1] = '\0';
-	}*/
+	return checksum;
+}
 
+/**
+ * Process the available buffer
+ * @param light_decoder Light decoder data
+ */
+void ld_process(light_decoder_t * light_decoder) {
+	int seq_ref_red[8 * LIGHT_SAMPLES_PER_BIT];
+	int seq_ref_blue[8 * LIGHT_SAMPLES_PER_BIT];
+	build_seq_refs(seq_ref_red, seq_ref_blue);
+
+	char message[LIGHT_DATA_LENGTH + 2];
+
+	int max_amplitude = get_max_signal_amplitude(light_decoder);
+	bool valid_signal = max_amplitude < VALID_SIGNAL_MIN_AMPLITUDE;
+	if (valid_signal){
+		strncpy(message, "Nothing received", LIGHT_DATA_LENGTH + 2);
+	} else {
+		int amplitude_threshold = normalize_red(light_decoder) / 2;
+		int sync = corr_index(light_decoder, seq_ref_red, seq_ref_blue, amplitude_threshold);
+
+		uint8_t checksum = decode_message(seq_ref_red, seq_ref_blue, message, sync, amplitude_threshold, light_decoder);
+
+		if (calc_checksum((uint8_t *)message, LIGHT_DATA_LENGTH) != checksum)
+			strncpy(message, "Bad checksum\0", LIGHT_DATA_LENGTH);
+	}
 	cmd_send_message(light_decoder->cmd_decoder, message);
 }
 
