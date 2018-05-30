@@ -5,11 +5,11 @@
  * Generated linker script file for LPC1769
  * Created from linkscript.ldt by FMCreateLinkLibraries
  * Using Freemarker v2.3.23
- * LPCXpresso v8.0.0 [Build 526] [2015-11-23]  on 30 mai 2018 19:39:16
+ * LPCXpresso v8.0.0 [Build 526] [2015-11-23]  on 30 mai 2018 19:42:32
  */
 
-INCLUDE "Gx_TP2_emetteur_lumineux_Debug_library.ld"
-INCLUDE "Gx_TP2_emetteur_lumineux_Debug_memory.ld"
+INCLUDE "TP2_recepteur_son_Debug_library.ld"
+INCLUDE "TP2_recepteur_son_Debug_memory.ld"
 
 ENTRY(ResetISR)
 
@@ -43,13 +43,6 @@ SECTIONS
 
         *(.after_vectors*)
 
-        /* Code Read Protect data */
-        . = 0x000002FC ;
-        PROVIDE(__CRP_WORD_START__ = .) ;
-        KEEP(*(.crp))
-        PROVIDE(__CRP_WORD_END__ = .) ;
-        ASSERT(!(__CRP_WORD_START__ == __CRP_WORD_END__), "Linker CRP Enabled, but no CRP_WORD provided within application");
-        /* End of Code Read Protect */
     } >MFlash512
 
     .text : ALIGN(4)    

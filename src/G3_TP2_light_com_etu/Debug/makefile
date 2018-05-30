@@ -9,6 +9,9 @@ RM := rm -rf
 # All of the sources participating in the build are defined here
 -include sources.mk
 -include src/subdir.mk
+-include FreeRTOS_src/subdir.mk
+-include FreeRTOS_portable/MemMang/subdir.mk
+-include FreeRTOS_portable/subdir.mk
 -include subdir.mk
 -include objects.mk
 
@@ -23,25 +26,25 @@ endif
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
-all: G3_TP2_light_Tx_etu.axf
+all: G3_TP2_light_com_etu.axf
 
 # Tool invocations
-G3_TP2_light_Tx_etu.axf: $(OBJS) $(USER_OBJS)
+G3_TP2_light_com_etu.axf: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: MCU Linker'
-	arm-none-eabi-gcc -nostdlib -L"/home/david.gonzalez3/Work/PTR/TP_light_communication/src/G3_TP2_light_Tx_etu/Debug" -L"/home/david.gonzalez3/Work/PTR/TP_light_communication/src/CMSISv2p00_LPC17xx/Debug" -Xlinker -Map="G3_TP2_light_Tx_etu.map" -Xlinker --gc-sections -mcpu=cortex-m3 -mthumb -T "Gx_TP2_emetteur_lumineux_Debug.ld" -o "G3_TP2_light_Tx_etu.axf" $(OBJS) $(USER_OBJS) $(LIBS)
+	arm-none-eabi-gcc -nostdlib -L"/home/david.gonzalez3/Work/PTR/TP_light_communication/src/G3_TP2_light_com_etu/Debug" -L"/home/david.gonzalez3/Work/PTR/TP_light_communication/src/CMSISv2p00_LPC17xx/Debug" -Xlinker -Map="G3_TP2_light_com_etu.map" -Xlinker --defsym=__user_heap_base=__end_bss_RAM2 -Xlinker --gc-sections -mcpu=cortex-m3 -mthumb -T "TP2_recepteur_son_Debug.ld" -o "G3_TP2_light_com_etu.axf" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 	$(MAKE) --no-print-directory post-build
 
 # Other Targets
 clean:
-	-$(RM) $(EXECUTABLES)$(OBJS)$(C_DEPS) G3_TP2_light_Tx_etu.axf
+	-$(RM) $(EXECUTABLES)$(OBJS)$(C_DEPS) G3_TP2_light_com_etu.axf
 	-@echo ' '
 
 post-build:
 	-@echo 'Performing post-build steps'
-	-arm-none-eabi-size "G3_TP2_light_Tx_etu.axf"; # arm-none-eabi-objcopy -O binary "G3_TP2_light_Tx_etu.axf" "G3_TP2_light_Tx_etu.bin" ; checksum -p LPC1769 -d "G3_TP2_light_Tx_etu.bin";
+	-arm-none-eabi-size "G3_TP2_light_com_etu.axf"; # arm-none-eabi-objcopy -O binary "G3_TP2_light_com_etu.axf" "G3_TP2_light_com_etu.bin" ; checksum -p LPC1769 -d "G3_TP2_light_com_etu.bin";
 	-@echo ' '
 
 .PHONY: all clean dependents
