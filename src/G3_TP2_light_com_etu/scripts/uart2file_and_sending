@@ -5,11 +5,11 @@ trap '' 2
 
 
 # line to be removed if this script is not used on hepia workstation
-sudo set_usbuart_perm ttyUSB0
+#sudo set_usbuart_perm ttyUSB0
 uart="/dev/ttyUSB0"
 
 echo "UART traces acquisition launched. Available commands are:"
-echo "send <file>  -> send a fiel content on UART. Must be ASCII." 
+echo "send <file>  -> send a fiel content on UART. Must be ASCII."
 echo "color <col>  -> col must be: red, green, blue, white or yellow"
 echo "scroll <mode> -> mode must be slow or fast"
 echo "leds <mode>  -> mode must be on or off"
@@ -57,7 +57,7 @@ do
 	   printf "\x05$c\x00" > $uart
    fi
 
-done 
+done
 
 # Terminate background read process
 kill $bgPid

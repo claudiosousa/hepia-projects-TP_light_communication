@@ -68,8 +68,9 @@ void build_seq_refs(int * seq_ref_red, int * seq_ref_blue) {
 
 
 /**
- * Verifies if the minimum amplitude for blue and red signal are above the VALID_SIGNAL_MIN_AMPLITUDE
- * @return If data has
+ * Verifies if data has enough amplitude variation to be considered data and not just noise
+ * It is considered noise if the minimum amplitude for blue and red signal are below the VALID_SIGNAL_MIN_AMPLITUDE
+ * @return If data is considered meaningful
  */
 bool is_msg_received(light_decoder_t * light_decoder) {
 	int max_red = 0, max_blue = 0, min_blue=1025, min_red=1025;
@@ -103,7 +104,7 @@ int normalize_red(light_decoder_t * light_decoder) {
 /**
  *
  */
-int corr_index(light_decoder_t * light_decoder, int* seq_ref_red, int* seq_ref_blue, int amplitude_offset) {
+int corr_index(light_decoder_t * light_decoder, int* seq_ref_red, int* seq_ref_blue) {
 	long long max_corr_value = 0;
 	int max_corr_index;
 	long long corr_value;
@@ -112,10 +113,8 @@ int corr_index(light_decoder_t * light_decoder, int* seq_ref_red, int* seq_ref_b
 	for (int ibuffer = 0; ibuffer < LIGHT_BUF_LEN / 2; ibuffer++) {
 		corr_value = 0;
 		for (int i = 0; i < corr_length; i++) {
-			corr_value += (light_decoder->buffer[i + ibuffer].red - amplitude_offset)
-					* seq_ref_red[i];
-			corr_value += (light_decoder->buffer[i + ibuffer].blue - amplitude_offset)
-					* seq_ref_blue[i];
+			corr_value += light_decoder->buffer[i + ibuffer].red * seq_ref_red[i];
+			corr_value += light_decoder->buffer[i + ibuffer].blue * seq_ref_blue[i];
 		}
 		if (corr_value > max_corr_value) {
 			max_corr_value = corr_value;
@@ -169,7 +168,7 @@ void ld_process(light_decoder_t * light_decoder) {
 		strncpy(message, "Nothing received", LIGHT_MAX_MSG_LENGTH);
 	} else {
 		int amplitude_threshold = normalize_red(light_decoder) / 2;
-		int sync = corr_index(light_decoder, seq_ref_red, seq_ref_blue, amplitude_threshold);
+		int sync = corr_index(light_decoder, seq_ref_red, seq_ref_blue);
 
 		uint8_t checksum = decode_message(seq_ref_red, seq_ref_blue, message, sync, amplitude_threshold, light_decoder);
 
