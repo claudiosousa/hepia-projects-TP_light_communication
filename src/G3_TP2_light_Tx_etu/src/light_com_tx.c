@@ -29,9 +29,10 @@
 #define CHECKSUM_SIZE 1
 #define FRAME_SIZE (SOF_SIZE + MSG_SIZE + CHECKSUM_SIZE)
 #define STR_SIZE (FRAME_SIZE + 1)
+#define USE_WFI 0
 
 // Allow the main code to be notified of the timer due date
-bool sleep_done = false;
+volatile bool sleep_done = false;
 
 /**
  * Create a XOR checksum of the given string
@@ -93,7 +94,9 @@ int main (void)
 	{
 		// Wait for the timer to tell us that the date has come
 		while (!sleep_done) {
+			#if USE_WFI == 1
 			__WFI();
+			#endif
 		}
 		sleep_done = false;
 
