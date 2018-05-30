@@ -6,12 +6,14 @@
 
 #include "light_decoder.h"
 #include <string.h>
+#include <stdbool.h>
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 
 // Message size to decode
 #define LIGHT_DATA_LENGTH 15
+#define LIGHT_MAX_MSG_LENGTH (LIGHT_DATA_LENGTH + 2)
 
 // Minimal amplitude requred to trying to read data
 #define VALID_SIGNAL_MIN_AMPLITUDE 3
@@ -66,9 +68,10 @@ void build_seq_refs(int * seq_ref_red, int * seq_ref_blue) {
 
 
 /**
- *
+ * Verifies if the minimum amplitude for blue and red signal are above the VALID_SIGNAL_MIN_AMPLITUDE
+ * @return If data has
  */
-int get_max_signal_amplitude(light_decoder_t * light_decoder) {
+bool is_msg_received(light_decoder_t * light_decoder) {
 	int max_red = 0, max_blue = 0, min_blue=1025, min_red=1025;
 	for (int i = 0; i < LIGHT_BUF_LEN; i++) {
 		max_red = MAX(max_red, light_decoder->buffer[i].red);
@@ -77,7 +80,7 @@ int get_max_signal_amplitude(light_decoder_t * light_decoder) {
 		min_blue = MIN(min_blue, light_decoder->buffer[i].blue);
 	}
 
-	return MIN(max_red-min_red, max_blue-min_blue);
+	return MIN(max_red-min_red, max_blue-min_blue) > VALID_SIGNAL_MIN_AMPLITUDE;
 }
 
 /**
@@ -159,12 +162,11 @@ void ld_process(light_decoder_t * light_decoder) {
 	int seq_ref_blue[8 * LIGHT_SAMPLES_PER_BIT];
 	build_seq_refs(seq_ref_red, seq_ref_blue);
 
-	char message[LIGHT_DATA_LENGTH + 2];
+	char message[LIGHT_MAX_MSG_LENGTH];
 
-	int max_amplitude = get_max_signal_amplitude(light_decoder);
-	bool valid_signal = max_amplitude < VALID_SIGNAL_MIN_AMPLITUDE;
-	if (valid_signal){
-		strncpy(message, "Nothing received", LIGHT_DATA_LENGTH + 2);
+	bool msg_received = is_msg_received(light_decoder);
+	if (!msg_received){
+		strncpy(message, "Nothing received", LIGHT_MAX_MSG_LENGTH);
 	} else {
 		int amplitude_threshold = normalize_red(light_decoder) / 2;
 		int sync = corr_index(light_decoder, seq_ref_red, seq_ref_blue, amplitude_threshold);
@@ -172,7 +174,7 @@ void ld_process(light_decoder_t * light_decoder) {
 		uint8_t checksum = decode_message(seq_ref_red, seq_ref_blue, message, sync, amplitude_threshold, light_decoder);
 
 		if (calc_checksum((uint8_t *)message, LIGHT_DATA_LENGTH) != checksum)
-			strncpy(message, "Bad checksum\0", LIGHT_DATA_LENGTH);
+			strncpy(message, "Bad checksum", LIGHT_DATA_LENGTH);
 	}
 	cmd_send_message(light_decoder->cmd_decoder, message);
 }

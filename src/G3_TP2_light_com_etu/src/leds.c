@@ -11,7 +11,7 @@
 #define LEDS_WAIT_MS 100
 
 void leds_init(leds_t * leds) {
-	LPC_GPIO2->FIODIR = LEDS_GPIO_LED_ID;
+	LPC_GPIO2->FIODIR |= LEDS_GPIO_LED_ID;
 	LPC_GPIO2->FIOMASK = ~LEDS_GPIO_LED_ID;
 	LPC_GPIO2->FIOPIN = 0;
 
@@ -33,16 +33,19 @@ void leds_task(void * param) {
 	while (1) {
 		// When off, it waits a 'on' command passively
 		if (!leds->on) {
+			//clear led output
+			LPC_GPIO2->FIOPIN = leds->val = 0;
 			while (!leds->on) {
 				xSemaphoreTake(leds->sem, portMAX_DELAY);
 			}
-			// Restart tick because we have waited an undefined quantity of time
+			// Restart tick because we have waited an arbitrary quantity of time
 			tick_start = xTaskGetTickCount();
 		}
 
-		leds->val <<= 1;
 		if (leds->val == 0) {
 			leds->val = 1;
+		}else{
+			leds->val <<= 1;
 		}
 		LPC_GPIO2->FIOPIN = leds->val;
 

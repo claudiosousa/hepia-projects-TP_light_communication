@@ -39,7 +39,7 @@ void load_task(void * param) {
 			while (load->load_ms == 0) {
 				xSemaphoreTake(load->sem, portMAX_DELAY);
 			}
-			// Restart tick because we have waited an undefined quantity of time
+			// Restart tick because we have waited an arbitrary quantity of time
 			tick_start = xTaskGetTickCount();
 		}
 
