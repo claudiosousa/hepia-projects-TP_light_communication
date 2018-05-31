@@ -29,7 +29,7 @@
 #define CHECKSUM_SIZE 1
 #define FRAME_SIZE (SOF_SIZE + MSG_SIZE + CHECKSUM_SIZE)
 #define STR_SIZE (FRAME_SIZE + 1)
-#define USE_WFI 0
+#define USE_WFI 1
 
 // Allow the main code to be notified of the timer due date
 volatile bool sleep_done = false;
