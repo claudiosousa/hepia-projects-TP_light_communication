@@ -1,4 +1,5 @@
 # Compilation tmp
+*.o
 *.d
 *.ld
 *.axf
