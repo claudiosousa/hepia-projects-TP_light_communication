@@ -14,7 +14,7 @@
 #include "load.h"
 #include "leds.h"
 
-#define CMD_UART_LENGTH 256
+#define CMD_UART_LENGTH 512
 
 typedef struct command_decoder_t {
 	// Temporary buffer for current decoded command from the queue
