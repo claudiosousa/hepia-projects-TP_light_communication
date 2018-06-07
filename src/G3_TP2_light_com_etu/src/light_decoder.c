@@ -15,7 +15,7 @@
 #define LIGHT_DATA_LENGTH 15
 #define LIGHT_MAX_MSG_LENGTH (LIGHT_DATA_LENGTH + 2)
 
-// Minimal amplitude requred to trying to read data
+// Minimal signal amplitude (max-min) required to trying to read data
 #define VALID_SIGNAL_MIN_AMPLITUDE 3
 
 // Macros that do a max & min (taken from lcd.h)
@@ -52,7 +52,10 @@ uint8_t calc_checksum(uint8_t * s, int len)
 }
 
 /**
- *
+ * Builds the blue & red reference sequences used to synchronize with the signal start of frame
+ * SOF marker data 0x951B will split into red & red frames
+ * @param seq_ref_red Output red SOF signal
+ * @param seq_ref_blue Output blue SOF signal
  */
 void build_seq_refs(int * seq_ref_red, int * seq_ref_blue) {
 	int bits_ref[16] = { 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1 }; //0x951B
@@ -69,8 +72,10 @@ void build_seq_refs(int * seq_ref_red, int * seq_ref_blue) {
 
 /**
  * Verifies if data has enough amplitude variation to be considered data and not just noise
- * It is considered noise if the minimum amplitude for blue and red signal are below the VALID_SIGNAL_MIN_AMPLITUDE
- * @return If data is considered meaningful
+ * It is considered noise if the minimum amplitude delta (max-min) for blue and red signal
+ * are below the VALID_SIGNAL_MIN_AMPLITUDE
+ * @param light_decoder The pointer to the buffer of received data
+ * @return Whether data is considered meaningful
  */
 bool is_msg_received(light_decoder_t * light_decoder) {
 	int max_red = 0, max_blue = 0, min_blue=1025, min_red=1025;
@@ -85,7 +90,9 @@ bool is_msg_received(light_decoder_t * light_decoder) {
 }
 
 /**
- *
+ * Normalises the red signal linearly so that max(red_signal) = max(blue_signal)
+ * @param light_decoder The pointer to the buffer of received data
+ * @return The normalized signal max value
  */
 int normalize_red(light_decoder_t * light_decoder) {
 	int max_red = 0, max_blue = 0;
@@ -98,11 +105,16 @@ int normalize_red(light_decoder_t * light_decoder) {
 	for (int i = 0; i < LIGHT_BUF_LEN; i++)
 		light_decoder->buffer[i].red *= ratio;
 
-	return MAX(max_red, max_blue);
+	return max_blue;
 }
 
 /**
- *
+ * Calculates the index of the start of frame in the buffer
+ * Does so by doing the convolution on the signal and the reference
+ * @param light_decoder The pointer to the buffer of received data
+ * @param seq_ref_red The red reference start of frame data
+ * @param seq_ref_blue The blue reference start of frame data
+ * @return The index of the start of frame in the buffer
  */
 int corr_index(light_decoder_t * light_decoder, int* seq_ref_red, int* seq_ref_blue) {
 	long long max_corr_value = 0;
@@ -126,11 +138,14 @@ int corr_index(light_decoder_t * light_decoder, int* seq_ref_red, int* seq_ref_b
 }
 
 /**
- *
+ * Decodes the data in the received signal
+ * @param message Holds the output decoded data
+ * @param sync The start of frame index
+ * @param amplitude_threshold The amplitude threshold between 0 and 1
+ * @param light_decoder The pointer to the buffer of received data
+ * @return The received checksum byte
  */
-uint8_t decode_message(int * seq_ref_red,
-						int * seq_ref_blue,
-						char * message,
+uint8_t decode_message(char * message,
 						int sync,
 						int amplitude_threshold,
 						light_decoder_t * light_decoder){
@@ -153,7 +168,7 @@ uint8_t decode_message(int * seq_ref_red,
 }
 
 /**
- * Process the available buffer
+ * Processes the available buffer and triggers the msg event
  * @param light_decoder Light decoder data
  */
 void ld_process(light_decoder_t * light_decoder) {
@@ -170,7 +185,7 @@ void ld_process(light_decoder_t * light_decoder) {
 		int amplitude_threshold = normalize_red(light_decoder) / 2;
 		int sync = corr_index(light_decoder, seq_ref_red, seq_ref_blue);
 
-		uint8_t checksum = decode_message(seq_ref_red, seq_ref_blue, message, sync, amplitude_threshold, light_decoder);
+		uint8_t checksum = decode_message(message, sync, amplitude_threshold, light_decoder);
 
 		if (calc_checksum((uint8_t *)message, LIGHT_DATA_LENGTH) != checksum)
 			strncpy(message, "Bad checksum", LIGHT_DATA_LENGTH);

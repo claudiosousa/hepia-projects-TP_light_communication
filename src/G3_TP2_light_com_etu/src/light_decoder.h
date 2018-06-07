@@ -17,7 +17,7 @@
 #define LIGHT_BUF_LEN (2 * 72 * LIGHT_SAMPLES_PER_BIT)
 
 typedef struct light_decoder_t {
-	// Two buffers for two frame in one
+	// Double buffer, one to capture, one for processing alternatively
 	ext_cs_t double_buffer[LIGHT_BUF_LEN * 2];
 	// The pointer to the actual buffer available for processing
 	ext_cs_t * buffer;
