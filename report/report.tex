@@ -68,7 +68,7 @@ Les programmes fonctionnent sans anomalie.
 \subsection{Déroulement}
 
 Une trace complète a été prise à chaque étape de charge de l'émetteur afin de pouvoir comparer les effets.
-Voici donc ci-dessous 4 fois la trace avec les 4 sections (étapes) mise en évidence:
+Voici donc ci-dessous 4 fois la trace avec les 4 sections (étapes) mises en évidence:
 
 \begin{figure}[H]
     \begin{center}
@@ -115,7 +115,8 @@ Voici un zoom sur la section 1 avec les timings de chacune des tâches en exécu
 Seules deux tâches sont en exécution, puisque à ce stade, la tâche des LEDs et la tâche de charge ne sont pas actives. \\
 
 Ici, le processeur ne fait pas grand chose et a largement le temps d'exécuter toutes les tâches en cours et
-de respecter les timings de la tâche 2 (commande à 220 ms).
+de respecter les timings de la tâche 2 (commande à 220 ms). La tâche 1 a un interval de 1150ms,
+ce qui correspond à la valeur attendue ($4 \,instants/char * 18 \,chars * 8 \,ms*2 \,frames=1152\,ms$).
 
 \subsection{Section 2}
 
@@ -170,16 +171,16 @@ Voici un zoom sur la section 3 avec les timings de chacune des tâches en exécu
 \end{figure}
 
 Ici, la tâche 3 (load) a été activée à son maximum (15 ms).
-On remarque tout de suite que les tâches ne peuvent plus être exécuté d'un trait à cause de la tâche de charge et
-ralonge par conséquent le temps de réponse, mais en respectant les timings.
+On remarque tout de suite que les tâches ne peuvent plus être exécutées sans interruption du à la tâche de charge.
+Par conséquent, le temps de réponse se trouve augmenté, mais respecte toujours les contraintes de temps.
 
 \subsection{Section 4}
 
 La section 4 est le plus chargée de toutes avec la commande \textit{send} envoyée. \\
 
 Selon le trace ci-dessous, la tâche 1 a largement le temps de s'exécuter.
-On remarque un peu de gigue temporel, mais la cadence étant donnée par le DMA du décodeur,
-la charge du CPU ne fait que retarder le décodage du message et n'affecte en rien la réception.
+On remarque une petite variation du temps d'exécution de la tâche, ce qui augmente la gigue temporel.
+La cadence étant donnée par le DMA du décodeur, la charge du CPU ne fait que retarder le décodage du message et n'affecte en rien la réception.
 
 \begin{figure}[H]
     \begin{multicols}{2}
@@ -195,8 +196,8 @@ la charge du CPU ne fait que retarder le décodage du message et n'affecte en ri
     \label{Zoom sur la section 4, tâche 1}
 \end{figure}
 
-Concernant la tâche 2, la trace nous montre que son temps de réponse est d'environ 110 ms.
-Aucune gigue n'a pas été observée, mais même en cas de décalage, le tâche à de la marge.
+Concernant la tâche 2, la trace ci-dessous nous montre que son temps de réponse est d'environ 110 ms.
+Aucune gigue n'a pas été observée.
 
 \begin{figure}[H]
     \begin{multicols}{2}
@@ -212,7 +213,7 @@ Aucune gigue n'a pas été observée, mais même en cas de décalage, le tâche 
     \label{Zoom sur la section 4, tâche 2}
 \end{figure}
 
-Concernant la tâche 3, son timings est parfait, puisque c'est la tâche avec la plus haute priorité.
+Concernant la tâche 3, son timing est parfait, puisque c'est la tâche avec la plus haute priorité.
 
 \begin{figure}[H]
     \begin{multicols}{2}
@@ -228,9 +229,8 @@ Concernant la tâche 3, son timings est parfait, puisque c'est la tâche avec la
     \label{Zoom sur la section 4, tâche 3}
 \end{figure}
 
-Finalement, pour la tâche 4, on observe sur la trace une gigue d'environ 20 ms.
-En effet, la tâche n'arrive pas a garder son timings parfait de 100 ms à cause de la charge.
-Cependant, ce n'est qu'un gigue, soit positive ou négative, comme observé sur la trace ci-dessous:
+Finalement, pour la tâche 4, on observe que l'interval entre deux exécutions varie entre 80ms et 120ms.
+Cependant, ce n'est qu'une gigue qui ne donne pas lieu à une dérive, comme observé sur la trace ci-dessous:
 
 \begin{figure}[H]
     \begin{multicols}{2}
@@ -246,14 +246,14 @@ Cependant, ce n'est qu'un gigue, soit positive ou négative, comme observé sur 
     \label{Zoom sur la section 4, tâche 4}
 \end{figure}
 
-Par ailleurs, lorsque la forte charge est passée, la tâche récupère bien son timings:
+Lorsque la forte charge est passée, la période de la tâche est stabilisée:
 
 \begin{figure}[H]
     \begin{center}
         \includegraphics[width=0.7\textwidth]{section4_send_t4_leds_5}
     \end{center}
-    \caption{Récupération du timings de la tâche 4}
-    \label{Récupération du timings de la tâche 4}
+    \caption{Récupération du timing de la tâche 4}
+    \label{Récupération du timing de la tâche 4}
 \end{figure}
 
 \end{document}
