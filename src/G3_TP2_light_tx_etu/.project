@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>G3_TP2_light_Tx_etu</name>
+	<name>G3_TP2_light_tx_etu</name>
 	<comment></comment>
 	<projects>
 		<project>CMSISv2p00_LPC17xx</project>
